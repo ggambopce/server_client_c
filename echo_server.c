@@ -1,11 +1,16 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
+#include <stdio.h>                  // 표준 입출력 함수 사용(printf, perror)
+#include <stdlib.h>                 // 일반 함수 사용(exit)
+#include <string.h>                 // 문자열 관련 함수 사용(memset)
+#include <unistd.h>                 // UNIX 표준 함수 사용(read, write, close)
+#include <sys/socket.h>             // 소켓 관련 구조와 함수 정의
+#include <arpa/inet.h>              // IP 주소 변환 함수 사용(inet_addr, htons)
 
-#define BUF_SIZE 1024
+/*
+* TCP 기반 서버 소켓 생성
+* 5명의 클라이언트까지 순차적으로 연결 수락
+* 각 클라이언트가 보낸 데이터를 그대로 다시 돌려주는 에코 기능
+*/
+#define BUF_SIZE 1024               // 일반적으로 통신에 가장많이 쓰이는 버퍼크기 read(), recv() 부담없이 처리
 void error_handling(char *message);
 
 int main(int argc, char *argv[])
