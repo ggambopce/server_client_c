@@ -5,20 +5,20 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#define BUF_SIZE 30
+#define BUF_SIZE 30                             // 바이너리 데이터 전송 확인용, 현업에서는 크게 사용
 void error_handling(char *message);
 
 int main(int argc, char *argv[])
 {
-    int serv_sd;
-    int clnt_sd;
-    FILE * fp;
-    char buf[BUF_SIZE];
-    int read_cnt;
+    int serv_sd;                                // 서버 소켓 식별자
+    int clnt_sd;                                // 연결 후 생성되는 클라이언트연결 소켓 식별자
+    FILE * fp;                                  // 전송할 파일을 가리키는 파일 포인터
+    char buf[BUF_SIZE];                         // 전송에 사용할 버퍼
+    int read_cnt;                               // fread로 읽은 바이트 수
 
-    struct sockaddr_in serv_adr;
-    struct sockaddr_in clnt_adr;
-    socklen_t clnt_adr_sz;
+    struct sockaddr_in serv_adr;                // 서버주소정보 구조체
+    struct sockaddr_in clnt_adr;                // 클라이언트주소정보 구조체
+    socklen_t clnt_adr_sz;                      // 
 
     if(argc != 2)
 	{
