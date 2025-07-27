@@ -7,83 +7,69 @@
 #include "mysql.h" 
 #include <time.h>
 
-// MySQL DB를 초기화 하고 사용할 수 있도록 연결하는 함수
-int initDB(MYSQL * mysql, const char * host, const char * id, const char * pw, const char * db) 
+// extern이란 여기는 없지만 다른파일 어딘가에는 있다는 뜻입니다.
+// 아래 4개 함수는 ControlDB.c 파일에 구현되어 있습니다. 
+extern int initDB(MYSQL*, const char * host, const char * id, const char * pw, const char * db); 
+extern int writeDB(MYSQL*, int door, int gas, int flame, int fan, int pin); 
+extern int readDB(MYSQL*, char * buff, int size, int idRow); 
+extern int closeDB(MYSQL *);
+
+int main() 
 {
-    printf("(i) initDB called, host=%s, id=%s, pw=%s, db=%s\n", host, id, pw, db); mysql_init(mysql); // DB 초기화
-    if(mysql_real_connect(mysql, host, id, pw, db,0,NULL,0)) // DB 접속 
-    { 
-        printf("(i) mysql_real_connect success\n"); 
-        return 0; // 성공 
-    }
-    printf("(!) mysql_real_connect failed\n");
-    return -1; // 실패 
-}
+    printf("(i) This is a test program for the ControlDB.\n"); // 인삿말
+    // DB에 삽입할 4가지 정수형 정보들
+    int randomDoor = 0; 
+    int randomGas = 0; 
+    int randomFlame = 0; 
+    int randomFan = 0;
+    // 시드 랜덤값을 위해 시갂으로 초기화
+    srand(time(NULL));
+    
+    // 4가지 정보는 테스트를 위해 랜덤으로 만들어 둔다.
+    randomDoor = rand()%256; 
+    randomGas = rand()%256; 
+    randomFlame = rand()%256; 
+    randomFan = rand()%256;
 
-// DB에 쓰는 함수 - 정수형 인자 5개는 DB Table의 각 field라고 가정
-int writeDB(MYSQL * mysql, int door, int gas, int flame, int fan, int pin) 
-{ 
-    char strQuery[255]=""; // 쿼리 작성에 사용할 버퍼
-    // 삽입 쿼리 작성, time 필드는 DATE 타입의 현재 시각 
-    sprintf(strQuery, "INSERT INTO twoteam(id, door, gas, flame, fan, pin, time) values(null, %d, %d, %d, %d, %d, now())", door, gas, flame, fan, pin);
-    int res = mysql_query(mysql, strQuery); // 삽입 쿼리의 실행
-    if (!res) // 성공 
+    // 잘 만들어 졌는지 한번 확인
+    printf("(i) random: door=%d, gas=%d, flame=%d, fan=%d\n", randomDoor, randomGas, randomFlame, randomFan);
+    
+    MYSQL mysql; // mysql DB의 연결 상태를 관리할 구조체 변수 생성
+    // DB에 연결해보자. 로컬에 접속하고, id는 root, 비번은 1234, DB명은 ssw 이다. 
+    if(initDB(&mysql, "localhost","root","1234","ssw")<0) 
     { 
-        printf("(i) inserted %lu rows.\n", (unsigned long)mysql_affected_rows(mysql)); 
-    } 
-    else // 실패 
-    { 
-        fprintf(stderr, "(!) insert error %d : %s\n", mysql_errno(mysql), mysql_error(mysql)); return -1; 
-    }
-    return 0; 
-}
-
-// DB에서 읽어오기, id 가 primary key이고 읽은 결과는 buf에 구분자|를 이용해 반홖한다.
-int readDB(MYSQL * mysql, char * buf, int size, int id) 
-{ 
-    char strQuery[256]="";          // select query를 작성할 버퍼 
-    buf[0]=0; 
-                          // 반환할 값은 strcat() 함수를 이용할 수 있도록 첫 바이트에 null을 넣는다.
-    // select query 작성 
-    sprintf(strQuery, "SELECT door, gas, flame, fan FROM twoteam WHERE id=%d;",id);
-    int res = mysql_query(mysql, strQuery); // query의 실행
-    if(res!=0) // 실패 
-    { 
+        printf("(!) initDB failed\n"); // 실패 
         return -1; 
     } 
-    else // 성공 
-    {
-        // select 문의 처리 결과는 커서 형태로 시스템에 의해 관리된다. 
-        MYSQL_RES * res_ptr = mysql_use_result(mysql);      // 시스템에 결과셋을 맡긴다. 
-        MYSQL_ROW sqlrow = mysql_fetch_row(res_ptr);        // 결과셋에서 한줄만 받아온다.
-        // 위에서 한줄만 가져오는 이유는 결과가 유일하다는 젂제에서 이다.
-        // 만약 결과가 여러개일 경우 반복문을 돌면서 모든 row에 대해 처리해 주어야 한다.
-        // make a string for return 
-        unsigned int field_count=0; 
-        while(field_count<mysql_field_count(mysql))         // 가져온 한줄의 모든 필드 값을 꺼내온다. 
-        { 
-            char buf_field[256]="";                         // 각 필드에 보관된 개별 값을 저장할 임시 버퍼 
-            if(sqlrow[field_count]) 
-                sprintf(buf_field,"|%s", sqlrow[field_count]); // 각 필드의 값을 문자열 형태로 가져온다. 
-                else sprintf(buf_field,"|0");               // 값이 null 인 경우 0으로 표시한다.
-            
-            strcat(buf,buf_field);                          // 가져온 필드의 값을 반홖버퍼에 붙인다.(string append)
-            field_count++;                                  // 다음 필드로 계속 진행 
-        }
+    else printf("(i) initDB successd!\n"); // 성공
 
-        if(mysql_errno(mysql)) // 만약 에러가 있었으면 
-        { 
-            fprintf(stderr, "(!) error: %s\n", mysql_error(mysql)); // 원인 표시 
-            return -1; // 에러값 반홖 
-        }
-        mysql_free_result(res_ptr); // 시스템에 맡겨놓았던 결과셋을 이제 버리라고 한다. 
-    }
-    return 0; // 정상종료 반홖 
-}
+    int pin = 6; // 추가적으로 필요한 필드(별거 아님;)
 
-// DB 접속 종료하기
-int closeDB(MYSQL * mysql) 
-{ 
-    mysql_close(mysql); // db 연결 해제 
-    return 1; 
+    // DB에 쓰기 - 성공 시 0, 실패 시 -1 반환
+    int res = writeDB(&mysql, randomDoor, randomGas, randomFlame, randomFan,pin); 
+    if(res<0) 
+    { 
+        printf("(!) writeDB failed\n"); 
+        return -1; 
+    } else printf("(i) writeDB success!, \n");
+
+    // 이제 삽입한 row의 값을 다시 읽어와 보자.
+    char buf[256]=""; // 결과를 받아올 문자열 버퍼 
+    int rowId = 1; // 테스트로 id가 1인 row의 값을 읽어온다. 
+    res = readDB(&mysql, buf, 256, rowId); // 읽기 실행 
+    if(res<0) // 실패 
+    { 
+        printf("(!) readDB failed\n"); 
+        return -1; 
+    } else printf("(i) readDB success!, buf=%s\n", buf); // 성공
+
+    if(closeDB(&mysql)<0) // DB 연결 끊기 
+    { 
+        printf("(!) clseDB failed\n"); //실패 
+        return -1; 
+    } else printf("(i) closeDB success\n"); //성공
+
+    // 종료 알림
+    printf("(i) This program will be closed.\n");
+    return 0; 
 }
