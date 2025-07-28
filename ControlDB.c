@@ -87,7 +87,7 @@ int readDB(MYSQL * mysql, char * buf, int size, int id)
         if(mysql_errno(mysql)) // 만약 에러가 있었으면 
         { 
             fprintf(stderr, "(!) error: %s\n", mysql_error(mysql)); // 원인 표시 
-            return -1; // 에러값 반홖 
+            return -1; // 에러값 반환
         }
         mysql_free_result(res_ptr); // 시스템에 맡겨놓았던 결과셋을 이제 버리라고 한다. 
     }
