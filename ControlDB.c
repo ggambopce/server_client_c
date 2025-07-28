@@ -11,16 +11,24 @@
 int initDB(MYSQL * mysql, const char * host, const char * id, const char * pw, const char * db) 
 {
     printf("(i) initDB called, host=%s, id=%s, pw=%s, db=%s\n", host, id, pw, db); mysql_init(mysql); // DB 초기화
-    if(mysql_real_connect(mysql, host, id, pw, db,0,NULL,0)) // DB 접속 { printf("(i) mysql_real_connect success\n"); return 0; // 성공 }
+    if(mysql_real_connect(mysql, host, id, pw, db,0,NULL,0)) // DB 접속 
+    { 
+        printf("(i) mysql_real_connect success\n"); 
+        return 0; // 성공 
+    }
     printf("(!) mysql_real_connect failed\n");
     return -1; // 실패 
 }
 
 // DB에 쓰는 함수 - 정수형 인자 5개는 DB Table의 각 field라고 가정
-int writeDB(MYSQL * mysql, int door, int gas, int flame, int fan, int pin) 
+int writeDB(MYSQL * mysql, float temp, float hum, int device_id) 
 { 
     char strQuery[255]=""; // 쿼리 작성에 사용할 버퍼
-    // 삽입 쿼리 작성, time 필드는 DATE 타입의 현재 시각 sprintf(strQuery, "INSERT INTO twoteam(id, door, gas, flame, fan, pin, time) values(null, %d, %d, %d, %d, %d, now())", door, gas, flame, fan, pin);
+    // 삽입 쿼리 작성, time 필드는 DATE 타입의 현재 시각 
+    sprintf(strQuery,
+            "INSERT INTO plant_data (device_id, temperature, humidity, timestamp) "
+            "VALUES (%d, %.2f, %.2f, NOW())",
+            device_id, temp, hum);
     int res = mysql_query(mysql, strQuery); // 삽입 쿼리의 실행
     if (!res) // 성공 
     { 
@@ -33,7 +41,7 @@ int writeDB(MYSQL * mysql, int door, int gas, int flame, int fan, int pin)
     return 0; 
 }
 
-// DB에서 읽어오기, id 가 primary key이고 읽은 결과는 buf에 구분자|를 이용해 반홖한다.
+// DB에서 읽어오기, id 가 primary key이고 읽은 결과는 buf에 구분자|를 이용해 반환한다.
 int readDB(MYSQL * mysql, char * buf, int size, int id) 
 { 
     char strQuery[256]="";          // select query를 작성할 버퍼 
