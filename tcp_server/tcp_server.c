@@ -12,7 +12,7 @@ void error_handling(char *message);
 // extern이란 여기는 없지만 다른파일 어딘가에는 있다는 뜻.
 // 아래 4개 함수는 ControlDB.c 파일에 구현되어 있다. 
 extern int initDB(MYSQL*, const char * host, const char * id, const char * pw, const char * db);
-extern int writeDB(MYSQL*, int door, int gas, int flame, int fan, int pin);
+extern int writeDB(MYSQL * mysql, float temp, float hum, int device_id);
 extern int readDB(MYSQL*, char * buff, int size, int idRow);
 extern int closeDB(MYSQL *);
 

@@ -20,24 +20,34 @@ int initDB(MYSQL * mysql, const char * host, const char * id, const char * pw, c
     return -1; // 실패 
 }
 
-// DB에 쓰는 함수 - 정수형 인자 5개는 DB Table의 각 field라고 가정
+// DB에 쓰는 함수 온도, 습도 데이터 전달
 int writeDB(MYSQL * mysql, float temp, float hum, int device_id) 
 { 
-    char strQuery[255]=""; // 쿼리 작성에 사용할 버퍼
-    // 삽입 쿼리 작성, time 필드는 DATE 타입의 현재 시각 
-    sprintf(strQuery,
-            "INSERT INTO plant_data (device_id, temperature, humidity, timestamp) "
-            "VALUES (%d, %.2f, %.2f, NOW())",
-            device_id, temp, hum);
-    int res = mysql_query(mysql, strQuery); // 삽입 쿼리의 실행
-    if (!res) // 성공 
-    { 
-        printf("(i) inserted %lu rows.\n", (unsigned long)mysql_affected_rows(mysql)); 
-    } 
-    else // 실패 
-    { 
-        fprintf(stderr, "(!) insert error %d : %s\n", mysql_errno(mysql), mysql_error(mysql)); return -1; 
+    char strQuery[512]=""; // 쿼리 작성에 사용할 버퍼
+    
+    
+    /**
+     * 실시간 상태 테이블에 UPSERT
+     * 항상 최신의 데이터를 유지하기위해 한 행만 관리
+     * devie_id가 없으면 INSERT, 없으면 데이터 UPDATE
+     */
+    snprintf(strQuery, sizeof(strQuery),
+        "INSERT INTO plant_data_latest (device_id, temperature, humidity, timestamp) "
+        "VALUES (%d, %.2f, %.2f, NOW()) "
+        "ON DUPLICATE KEY UPDATE "
+        "temperature = VALUES(temperature), "
+        "humidity = VALUES(humidity), "
+        "timestamp = NOW();",
+        device_id, temp, hum);
+
+    int res = mysql_query(mysql, strQuery);
+    if (res) {
+        fprintf(stderr, "(!) insert/update error %d: %s\n", mysql_errno(mysql), mysql_error(mysql));
+        return -1;
+    } else {
+        printf("(i) 실시간 상태 업데이트 완료: device_id=%d, temp=%.2f, hum=%.2f\n", device_id, temp, hum);
     }
+
     return 0; 
 }
 
